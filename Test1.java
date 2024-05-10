@@ -1,70 +1,73 @@
-package com.Dealsdray.automation;
+package com.pratice.automation;
 
-
-
-import org.apache.commons.io.FileUtils;
-import org.openqa.selenium.*;
+import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.chrome.ChromeOptions;
-import org.openqa.selenium.support.ui.ExpectedConditions;
-import org.openqa.selenium.support.ui.WebDriverWait;
-
+import org.openqa.selenium.firefox.FirefoxDriver;
+import org.openqa.selenium.Dimension;
+import org.openqa.selenium.OutputType;
+import org.openqa.selenium.TakesScreenshot;
 import java.io.File;
-import java.time.Duration;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
-    public class Test1 {
-        public static void main(String[] args) throws Exception{
-            ChromeOptions options = new ChromeOptions();
-            options.setBrowserVersion("122");
-            options.addArguments("--remote-allow-origins=*");
+public class Test1{
 
-            WebDriver driver = new ChromeDriver(options);
-            // Navigate to the website
-            driver.get("https://demo.dealsdray.com/");
+    public static void main(String[] args) {
+        // Define resolutions for desktop
+        Map<String, Dimension> resolutions = new HashMap<>();
+        resolutions.put("1920x1080", new Dimension(1920, 1080));
+        resolutions.put("1366x768", new Dimension(1366, 768));
+        resolutions.put("1536x864", new Dimension(1536, 864));
+        //Define resolution for destop
+        resolutions.put("360x640", new Dimension(360, 640));
+        resolutions.put("414x896", new Dimension(414, 896));
+        resolutions.put("375x667", new Dimension(375, 667));
 
-            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-            // Define the path to the XLSX file
-            String xlsxFilePath = "C:\\Users\\Indira\\Downloads\\demo-data (1).xlsx";
+        // Define browsers
+        Map<String, WebDriver> drivers = new HashMap<>();
+        drivers.put("Chrome", new ChromeDriver());
+        drivers.put("Firefox", new FirefoxDriver());
+        // drivers.put("Safari", new SafariDriver());
 
-            //  login with valid credentials
-            driver.findElement(By.name("username")).sendKeys("prexo.mis@dealsdray.com");
-            driver.findElement(By.name("password")).sendKeys("prexo.mis@dealsdray.com");
-            wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//button[text()='Login']"))).click();
-            driver.manage().window().maximize();
-            // Wait for the page to get load
-            // WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-            wait.until(ExpectedConditions.presenceOfElementLocated(By.xpath("//span[text()='chevron_right']")));
+        // Define URL and list of pages from sitemap
+        String baseUrl = "https://www.getcalley.com/";
+        String[] pages = {"page1", "page2", "page3","page4","page5"};
 
-            // Navigate to the orders section
-            driver.findElement(By.xpath("//span[text()='chevron_right']")).click();
-            wait.until((ExpectedConditions.elementToBeClickable(By.xpath("//div[@class='expansion-panel submenu']/descendant::span[1]")))).click();
+        // Loop through each browser
+        for (String browserName : drivers.keySet()) {
+            WebDriver driver = drivers.get(browserName);
 
-            // Wait for the page to load and then click on the add bulk order button
-            wait.until(ExpectedConditions.presenceOfElementLocated(By.xpath("//div[@id='root']/descendant::button[2]")));
-            JavascriptExecutor js=(JavascriptExecutor)driver;
-            //and then click on the add bulk order button
-            Thread.sleep(5000);
+            // Loop through resolutions
+            for (String resolutionName : resolutions.keySet()) {
+                Dimension resolution = resolutions.get(resolutionName);
 
-            WebElement bulkorder=driver.findElement(By.xpath("//*[@id='root']/div/div/div[2]/div/div/div[2]/div[2]/button"));
-            bulkorder.click();
-            //js.executeScript("arguments[0].click();",bulkorder);
+                // Set browser window size
+                driver.manage().window().setSize(resolution);
 
+                // Create folder for screenshots
+                File browserFolder = new File("screenshots/" + browserName);
+                browserFolder.mkdirs();
+                File resolutionFolder = new File(browserFolder, resolutionName);
+                resolutionFolder.mkdirs();
 
+                // Loop through pages
+                for (String page : pages) {
+                    driver.get(baseUrl + page);
 
-            WebElement uploadButton = driver.findElement(By.id("upload-button"));
-            uploadButton.sendKeys(new File(xlsxFilePath).getAbsolutePath());
+                    // Take screenshot
+                    File screenshot = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
+                    try {
+                        String screenshotPath = resolutionFolder.getAbsolutePath() + "/" + page + "_" + resolutionName + ".png";
+                        org.apache.commons.io.FileUtils.copyFile(screenshot, new File(screenshotPath));
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
 
-            // Wait for the upload to complete
-            wait.until(ExpectedConditions.textToBePresentInElement(driver.findElement(By.id("upload-status")), "Completed"));
-
-            // Take a screenshot of the final output page
-            File screenshotFile = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
-            FileUtils.copyFile(screenshotFile, new File("xlsxFilePath"));
-
-            // Close the WebDriver
+            // Close browser
             driver.quit();
         }
     }
-
-
-
+}
